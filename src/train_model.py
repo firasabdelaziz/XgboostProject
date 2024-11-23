@@ -7,6 +7,7 @@ from prepare_data import load_data, prepare_data
 import warnings
 import pandas as pd
 from datetime import datetime
+from evaluate_model import evaluate_model
 
 # Filter warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -99,6 +100,11 @@ def main():
         
         # Train model
         model = train_model(X_train, X_test, y_train, y_test)
+
+        # Evaluate model
+        logging.info("Evaluating model...")
+        y_pred = evaluate_model(model, X_test, y_test)  # This calculates MSE and R²
+
         
         # Save model
         model_path = 'models/xgboost_model.json'
