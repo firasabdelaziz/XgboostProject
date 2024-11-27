@@ -1,4 +1,4 @@
-This project implements an XGBoost regression model for predicting target variable 'y'.
+This project implements an XGBoost classification model for predicting target variable 'y'.
 
 ## Project Structure
 ```

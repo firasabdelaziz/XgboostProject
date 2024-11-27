@@ -1,44 +1,71 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    confusion_matrix, classification_report, roc_curve, auc
+)
 import numpy as np
-import xgboost as xgb  
-
+import xgboost as xgb
 
 def evaluate_model(model, X_test, y_test):
     """
-    Evaluate model performance and create visualizations
+    Evaluate classification model performance and create visualizations
     """
     # Make predictions
     y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]  # Probability for positive class
     
     # Calculate metrics
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
     
     # Print metrics
-    print(f"Mean Squared Error: {mse:.4f}")
-    print(f"Root Mean Squared Error: {rmse:.4f}")
-    print(f"R² Score: {r2:.4f}")
+    print("\nClassification Metrics:")
+    print(f"Accuracy: {accuracy:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
+    print(f"F1 Score: {f1:.4f}")
+    
+    # Print detailed classification report
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred))
     
     # Create visualizations
-    create_evaluation_plots(y_test, y_pred, model)
+    create_evaluation_plots(y_test, y_pred, y_pred_proba, model)
     
     return y_pred
 
-def create_evaluation_plots(y_test, y_pred, model):
+def create_evaluation_plots(y_test, y_pred, y_pred_proba, model):
     """
-    Create evaluation plots
+    Create evaluation plots for classification model
     """
-    # Actual vs Predicted
-    plt.figure(figsize=(10, 6))
-    plt.scatter(y_test, y_pred, alpha=0.5)
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-    plt.xlabel('Actual Values')
-    plt.ylabel('Predicted Values')
-    plt.title('Actual vs Predicted Values')
-    plt.savefig('outputs/actual_vs_predicted.png')
+    # Confusion Matrix
+    plt.figure(figsize=(8, 6))
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.savefig('outputs/confusion_matrix.png')
+    plt.close()
+    
+    # ROC Curve
+    plt.figure(figsize=(8, 6))
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+    roc_auc = auc(fpr, tpr)
+    
+    plt.plot(fpr, tpr, color='darkorange', lw=2, 
+             label=f'ROC curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    plt.savefig('outputs/roc_curve.png')
     plt.close()
     
     # Feature Importance
@@ -48,12 +75,11 @@ def create_evaluation_plots(y_test, y_pred, model):
     plt.savefig('outputs/feature_importance.png')
     plt.close()
     
-    # Error Distribution
-    errors = y_test - y_pred
+    # Prediction Distribution
     plt.figure(figsize=(10, 6))
-    sns.histplot(errors, kde=True)
-    plt.title('Distribution of Prediction Errors')
-    plt.xlabel('Prediction Error')
+    sns.histplot(data=y_pred_proba, bins=50, kde=True)
+    plt.title('Distribution of Prediction Probabilities')
+    plt.xlabel('Predicted Probability')
     plt.ylabel('Count')
-    plt.savefig('outputs/error_distribution.png')
+    plt.savefig('outputs/prediction_distribution.png')
     plt.close()

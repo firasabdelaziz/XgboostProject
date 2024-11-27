@@ -33,10 +33,11 @@ def setup_logging():
 
 def train_model(X_train, X_test, y_train, y_test):
     """
-    Train XGBoost regression model with updated configuration
+    Train XGBoost classification model with updated configuration
     """
-    # Create parameter dictionary
+    # Create parameter dictionary for classification
     params = {
+        'objective': 'binary:logistic',  # for binary classification
         'n_estimators': 200,
         'learning_rate': 0.05,
         'max_depth': 6,
@@ -45,11 +46,11 @@ def train_model(X_train, X_test, y_train, y_test):
         'colsample_bytree': 0.8,
         'random_state': 42,
         'early_stopping_rounds': 20,
-        'eval_metric': ['rmse', 'mae']  # Move eval_metric to params
+        'eval_metric': ['logloss', 'error', 'auc']  # Classification metrics
     }
     
     # Initialize model
-    model = xgb.XGBRegressor(**params)
+    model = xgb.XGBClassifier(**params)
     
     # Create evaluation set
     eval_set = [(X_train, y_train), (X_test, y_test)]
@@ -81,30 +82,28 @@ def main():
         
         # Load and prepare data
         logging.info("Loading data...")
-        df = load_data('data/dataset_cleaned.csv')
-        
-        logging.info("Preparing data...")
-        df_clean = prepare_data(df)
+        df = load_data('data/new_dataset_cleaned.csv')
         
         # Split data
         logging.info("Splitting data into train and test sets...")
-        X = df_clean.drop('y', axis=1)
-        y = df_clean['y']
+        X = df.drop('y', axis=1)
+        y = df['y']
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+            X, y, test_size=0.2, random_state=42, stratify=y  # Added stratify for balanced classes
         )
         
-        # Log data shapes
+        # Log data shapes and class distribution
         logging.info(f"Training set shape: {X_train.shape}")
         logging.info(f"Testing set shape: {X_test.shape}")
+        logging.info(f"Training class distribution:\n{pd.Series(y_train).value_counts(normalize=True)}")
+        logging.info(f"Testing class distribution:\n{pd.Series(y_test).value_counts(normalize=True)}")
         
         # Train model
         model = train_model(X_train, X_test, y_train, y_test)
 
         # Evaluate model
         logging.info("Evaluating model...")
-        y_pred = evaluate_model(model, X_test, y_test)  # This calculates MSE and R²
-
+        y_pred = evaluate_model(model, X_test, y_test)  # This should now calculate classification metrics
         
         # Save model
         model_path = 'models/xgboost_model.json'
